@@ -1,0 +1,23 @@
+{
+  "name": "ai-agent",
+  "version": "0.1.0",
+  "description": "Terminal-based AI agent powered by Claude",
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
+    "@tavily/core": "^0.3.0",
+    "axios": "^1.7.0",
+    "chalk": "^5.3.0",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0"
+  }
+}
