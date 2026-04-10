@@ -9,6 +9,11 @@ export const MAX_TOKENS = 4096;
 // Results longer than this are truncated before being appended.
 export const MAX_TOOL_RESULT_CHARS = 2000;
 
+// Max chars a single assistant text block is allowed to occupy when the
+// history is sent to the API. Older long responses are trimmed in the
+// outgoing payload only — the full text is never mutated in memory.
+export const MAX_HISTORY_TEXT_CHARS = 3000;
+
 // Max number of user+assistant turn pairs kept in the conversation history.
 // Older turns are dropped (the very first user message is always kept).
 export const MAX_HISTORY_TURNS = 10;

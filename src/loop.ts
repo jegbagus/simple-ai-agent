@@ -3,7 +3,7 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
-import { ANTHROPIC_API_KEY, MODEL, MAX_TOKENS, SYSTEM_PROMPT, MAX_TOOL_RESULT_CHARS, MAX_HISTORY_TURNS } from './config.js';
+import { ANTHROPIC_API_KEY, MODEL, MAX_TOKENS, SYSTEM_PROMPT, MAX_TOOL_RESULT_CHARS, MAX_HISTORY_TURNS, MAX_HISTORY_TEXT_CHARS } from './config.js';
 import { readFile, writeFile, editFile, deleteFile, listDirectory } from './tools/fileOps.js';
 import { executeCommand } from './tools/shell.js';
 import { webSearch } from './tools/webSearch.js';
@@ -210,6 +210,38 @@ interface ToolUseBlock { type: 'tool_use'; id: string; name: string; input: Tool
 type ContentBlock = TextBlock | ToolUseBlock;
 
 // ---------------------------------------------------------------------------
+// History trimming — applied to the outgoing payload only, never in-place
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns a copy of the messages array where long assistant text blocks are
+ * trimmed to MAX_HISTORY_TEXT_CHARS. The originals in memory are untouched.
+ */
+function trimHistoryForApi(messages: Anthropic.MessageParam[]): Anthropic.MessageParam[] {
+  return messages.map((msg) => {
+    if (msg.role !== 'assistant') return msg;
+
+    const blocks = typeof msg.content === 'string'
+      ? [{ type: 'text' as const, text: msg.content }]
+      : (msg.content as Anthropic.ContentBlock[]);
+
+    const trimmed = blocks.map((block) => {
+      if (block.type === 'text' && block.text.length > MAX_HISTORY_TEXT_CHARS) {
+        return {
+          ...block,
+          text:
+            block.text.slice(0, MAX_HISTORY_TEXT_CHARS) +
+            `\n… [${block.text.length - MAX_HISTORY_TEXT_CHARS} chars omitted from history]`,
+        };
+      }
+      return block;
+    });
+
+    return { ...msg, content: trimmed };
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Agentic loop
 // ---------------------------------------------------------------------------
 
@@ -262,7 +294,7 @@ export async function runAgent(
         max_tokens: MAX_TOKENS,
         system: SYSTEM_PROMPT,
         tools: TOOLS,
-        messages,
+        messages: trimHistoryForApi(messages),
       });
 
       for await (const event of stream) {

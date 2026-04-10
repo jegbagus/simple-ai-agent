@@ -8,6 +8,7 @@ import chalk from 'chalk';
 import Anthropic from '@anthropic-ai/sdk';
 import { ANTHROPIC_API_KEY, TAVILY_API_KEY, MODEL } from './config.js';
 import { runAgent } from './loop.js';
+import { initFileLog, logUserInput, logAgentOutput } from './logger.js';
 
 const BANNER = `
 ${chalk.bold.cyan('AI Agent')} ${chalk.dim('— powered by Claude')}
@@ -39,8 +40,10 @@ function checkEnv(): void {
 
 async function main(): Promise<void> {
   checkEnv();
+  const logFile = initFileLog();
   console.log(BANNER);
-  console.log(chalk.dim(`Model: ${MODEL}\n`));
+  console.log(chalk.dim(`Model: ${MODEL}`));
+  console.log(chalk.dim(`Session log: ${logFile}\n`));
 
   const rl = readline.createInterface({ input, output });
   const messages: Anthropic.MessageParam[] = [];
@@ -77,11 +80,17 @@ async function main(): Promise<void> {
     }
 
     messages.push({ role: 'user', content: userInput });
+    logUserInput(userInput);
 
     process.stdout.write(`\n${chalk.bold.cyan('agent')} › `);
 
+    let agentOutput = '';
     try {
-      await runAgent(messages, (chunk) => process.stdout.write(chunk));
+      await runAgent(messages, (chunk) => {
+        process.stdout.write(chunk);
+        agentOutput += chunk;
+      });
+      logAgentOutput(agentOutput);
     } catch (e: any) {
       console.error(`\n${chalk.red('Error:')} ${e.message}`);
       // Remove the failed user turn to keep history clean
