@@ -1,6 +1,5 @@
 import { execSync } from 'child_process';
-import * as readline from 'readline/promises';
-import { stdin as input, stdout as output } from 'process';
+import { confirm, warnLine } from '../confirm.js';
 
 const DESTRUCTIVE_KEYWORDS = [
   'rm ', 'rmdir', 'del ', 'format', 'mkfs', 'dd ',
@@ -22,11 +21,9 @@ export async function executeCommand(
   const needsConfirm = requiresConfirmation || looksDestructive(command);
 
   if (needsConfirm) {
-    const rl = readline.createInterface({ input, output });
-    console.log(`\n  ⚠ About to run: ${command}`);
-    const answer = await rl.question('  Proceed? [y/N] ');
-    rl.close();
-    if (answer.trim().toLowerCase() !== 'y') return 'Command cancelled by user.';
+    warnLine(`About to run: ${command}`);
+    const ok = await confirm('  Proceed?');
+    if (!ok) return 'Command cancelled by user.';
   }
 
   try {

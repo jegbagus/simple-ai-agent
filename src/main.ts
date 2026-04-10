@@ -9,6 +9,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { ANTHROPIC_API_KEY, TAVILY_API_KEY, MODEL } from './config.js';
 import { runAgent } from './loop.js';
 import { initFileLog, logUserInput, logAgentOutput } from './logger.js';
+import { setConfirmFn } from './confirm.js';
 
 const BANNER = `
 ${chalk.bold.cyan('AI Agent')} ${chalk.dim('— powered by Claude')}
@@ -46,6 +47,10 @@ async function main(): Promise<void> {
   console.log(chalk.dim(`Session log: ${logFile}\n`));
 
   const rl = readline.createInterface({ input, output });
+  setConfirmFn(async (message) => {
+    const answer = await rl.question(`${message} [y/N] `);
+    return answer.trim().toLowerCase() === 'y';
+  });
   const messages: Anthropic.MessageParam[] = [];
 
   // Handle Ctrl+C gracefully

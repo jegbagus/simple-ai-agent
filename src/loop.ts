@@ -185,8 +185,8 @@ async function dispatchTool(name: string, input: ToolInput): Promise<string> {
   try {
     switch (name) {
       case 'read_file':        return readFile(input.path as string);
-      case 'write_file':       return writeFile(input.path as string, input.content as string);
-      case 'edit_file':        return editFile(input.path as string, input.old_string as string, input.new_string as string);
+      case 'write_file':       return await writeFile(input.path as string, input.content as string);
+      case 'edit_file':        return await editFile(input.path as string, input.old_string as string, input.new_string as string);
       case 'delete_file':      return await deleteFile(input.path as string);
       case 'list_directory':   return listDirectory((input.path as string | undefined) ?? '.');
       case 'execute_command':  return await executeCommand(input.command as string, (input.requires_confirmation as boolean | undefined) ?? false);
