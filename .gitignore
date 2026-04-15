@@ -5,6 +5,8 @@
 
 # Dependencies
 node_modules/
+.claude
+.serena
 
 # Build output
 dist/
