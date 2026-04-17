@@ -3,7 +3,6 @@
  * so you have a permanent record of every session.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -51,7 +50,7 @@ function fts() {
 export function logRequest(
   iteration: number,
   model: string,
-  messages: Anthropic.MessageParam[],
+  messages: any[],
   system: string,
 ): void {
   fwrite('');
@@ -64,30 +63,27 @@ export function logRequest(
   system.trim().split('\n').forEach((line) => fwrite(`  │ ${line}`));
   fwrite('  └──────────────────────────────────────────────────────────────────');
   fwrite('');
-  fwrite('  ┌─ Messages sent to Claude ────────────────────────────────────────');
+  fwrite('  ┌─ Messages sent to Gemini ─────────────────────────────────────────');
 
   if (messages.length === 0) fwrite('  │  (no messages yet)');
 
   messages.forEach((msg, i) => {
     fwrite(`  │ [${i}] [${msg.role}]`);
-    const blocks = typeof msg.content === 'string'
-      ? [{ type: 'text', text: msg.content }]
-      : (msg.content as any[]);
+    const parts: any[] = msg.parts ?? [];
 
-    blocks.forEach((block: any) => {
-      if (block.type === 'text') {
-        block.text.split('\n').forEach((line: string) => fwrite(`  │    ${line}`));
-      } else if (block.type === 'tool_use') {
-        fwrite(`  │    tool_use › name=${block.name}  id=${block.id}`);
-        JSON.stringify(block.input, null, 2).split('\n').forEach((line) =>
-          fwrite(`  │      ${line}`),
-        );
-      } else if (block.type === 'tool_result') {
-        const body = typeof block.content === 'string'
-          ? block.content
-          : JSON.stringify(block.content);
-        fwrite(`  │    tool_result › for=${block.tool_use_id}`);
-        body.split('\n').forEach((line: string) => fwrite(`  │      ${line}`));
+    parts.forEach((part: any) => {
+      if (part.text) {
+        part.text.split('\n').forEach((line: string) => fwrite(`  │    ${line}`));
+      } else if (part.functionCall) {
+        fwrite(`  │    functionCall › name=${part.functionCall.name}`);
+        JSON.stringify(part.functionCall.args ?? {}, null, 2)
+          .split('\n')
+          .forEach((line) => fwrite(`  │      ${line}`));
+      } else if (part.functionResponse) {
+        fwrite(`  │    functionResponse › name=${part.functionResponse.name}`);
+        JSON.stringify(part.functionResponse.response ?? {}, null, 2)
+          .split('\n')
+          .forEach((line: string) => fwrite(`  │      ${line}`));
       }
     });
     fwrite('  │');
@@ -97,31 +93,31 @@ export function logRequest(
   fwrite(fdivider());
 }
 
-/** Logged when Claude starts streaming back a text response. */
+/** Logged when Gemini starts streaming back a text response. */
 export function logStreamStart(): void {
   fwrite('');
-  fwrite(`◀ CLAUDE RESPONSE  ${fts()}`);
+  fwrite(`◀ GEMINI RESPONSE  ${fts()}`);
   fwrite(fdivider('·'));
 }
 
-/** Logged after streaming ends — shows stop reason and token usage. */
+/** Logged after streaming ends — shows finish reason and token usage. */
 export function logStreamEnd(
-  stopReason: string | null,
+  finishReason: string | null,
   usage: { input_tokens: number; output_tokens: number },
 ): void {
   fwrite(fdivider('·'));
-  fwrite(`  Stop reason : ${stopReason ?? 'unknown'}  Tokens in : ${usage.input_tokens}  out : ${usage.output_tokens}`);
+  fwrite(`  Finish reason : ${finishReason ?? 'unknown'}  Tokens in : ${usage.input_tokens}  out : ${usage.output_tokens}`);
   fwrite(fdivider());
 }
 
-/** Logged when Claude decides to call a tool. */
+/** Logged when Gemini decides to call a tool. */
 export function logToolCall(
   name: string,
   input: Record<string, unknown>,
   toolId: string,
 ): void {
   fwrite('');
-  fwrite(`TOOL CALL  ${name}  id=${toolId}  ${fts()}`);
+  fwrite(`TOOL CALL  ${name}${toolId ? `  id=${toolId}` : ''}  ${fts()}`);
   fwrite('  Input:');
   JSON.stringify(input, null, 2).split('\n').forEach((line) => fwrite(`  ${line}`));
 }
@@ -146,7 +142,7 @@ export function logAgentDone(totalIterations: number): void {
   fwrite(fdivider('═'));
 }
 
-/** Logged with the raw HTTP request body sent to the Anthropic API. */
+/** Logged with the raw HTTP request body. */
 export function logHttpRequest(url: string, body: unknown): void {
   fwrite('');
   fwrite(`HTTP REQUEST  ${url}  ${fts()}`);
@@ -155,7 +151,7 @@ export function logHttpRequest(url: string, body: unknown): void {
   fwrite(fdivider('·'));
 }
 
-/** Logged with the raw HTTP response body from the Anthropic API. */
+/** Logged with the raw HTTP response body. */
 export function logHttpResponse(status: number, body: string): void {
   fwrite('');
   fwrite(`HTTP RESPONSE ${status}  ${fts()}`);

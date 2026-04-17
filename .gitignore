@@ -5,8 +5,6 @@
 
 # Dependencies
 node_modules/
-.claude
-.serena
 
 # Build output
 dist/
@@ -28,3 +26,5 @@ memory/sessions.json
 # Logs
 *.log
 npm-debug.log*
+
+.vertex

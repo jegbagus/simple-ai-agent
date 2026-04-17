@@ -5,14 +5,14 @@
 import * as readline from 'readline/promises';
 import { stdin as input, stdout as output } from 'process';
 import chalk from 'chalk';
-import Anthropic from '@anthropic-ai/sdk';
-import { ANTHROPIC_API_KEY, TAVILY_API_KEY, MODEL } from './config.js';
+import { Content } from '@google/genai';
+import { TAVILY_API_KEY, MODEL, GOOGLE_CLOUD_PROJECT } from './config.js';
 import { runAgent } from './loop.js';
 import { initFileLog, logUserInput, logAgentOutput } from './logger.js';
 import { setConfirmFn } from './confirm.js';
 
 const BANNER = `
-${chalk.bold.cyan('AI Agent')} ${chalk.dim('— powered by Claude')}
+${chalk.bold.cyan('AI Agent')} ${chalk.dim('— powered by Gemini')}
 ${chalk.dim('Commands:')} ${chalk.bold('/exit')} quit · ${chalk.bold('/clear')} clear history · ${chalk.bold('/help')} show tools
 `;
 
@@ -31,8 +31,8 @@ ${chalk.bold('Available tools:')}
 `;
 
 function checkEnv(): void {
-  if (!ANTHROPIC_API_KEY) {
-    console.warn(chalk.yellow('Warning: ANTHROPIC_API_KEY is not set'));
+  if (!GOOGLE_CLOUD_PROJECT) {
+    console.warn(chalk.yellow('Warning: GOOGLE_CLOUD_PROJECT is not set'));
   }
   if (!TAVILY_API_KEY) {
     console.warn(chalk.yellow('Warning: TAVILY_API_KEY is not set (web search unavailable)'));
@@ -51,7 +51,7 @@ async function main(): Promise<void> {
     const answer = await rl.question(`${message} [y/N] `);
     return answer.trim().toLowerCase() === 'y';
   });
-  const messages: Anthropic.MessageParam[] = [];
+  const messages: Content[] = [];
 
   // Handle Ctrl+C gracefully
   rl.on('close', () => {
@@ -84,7 +84,7 @@ async function main(): Promise<void> {
       continue;
     }
 
-    messages.push({ role: 'user', content: userInput });
+    messages.push({ role: 'user', parts: [{ text: userInput }] });
     logUserInput(userInput);
 
     process.stdout.write(`\n${chalk.bold.cyan('agent')} › `);
